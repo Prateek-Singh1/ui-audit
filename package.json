@@ -1,0 +1,63 @@
+{
+  "name": "ui-audit",
+  "version": "0.1.0",
+  "description": "A production-quality CLI for auditing UI, accessibility, and performance issues in frontend projects.",
+  "type": "module",
+  "bin": {
+    "ui-audit": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "tsup",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "audit:deps": "npm audit --omit=dev",
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
+  },
+  "keywords": [
+    "cli",
+    "accessibility",
+    "performance",
+    "frontend",
+    "ui-audit"
+  ],
+  "author": "Open Source Community",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/ui-audit.git"
+  },
+  "homepage": "https://github.com/your-username/ui-audit",
+  "bugs": {
+    "url": "https://github.com/your-username/ui-audit/issues"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@typescript-eslint/eslint-plugin": "^8.14.0",
+    "@typescript-eslint/parser": "^8.14.0",
+    "chalk": "^5.0.1",
+    "commander": "^15.0.0",
+    "eslint": "^9.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "fast-glob": "^3.3.3",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.0.1",
+    "ora": "^9.4.1",
+    "prettier": "^3.3.1",
+    "tsup": "^8.5.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.1",
+    "vitest": "^4.1.10"
+  }
+}
