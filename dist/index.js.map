@@ -1,1 +1,0 @@
-{"version":3,"sources":["../src/index.ts"],"names":[],"mappings":";AAAO,IAAM,OAAA,GAAU","file":"index.js","sourcesContent":["export const version = '0.1.0';\n"]}
