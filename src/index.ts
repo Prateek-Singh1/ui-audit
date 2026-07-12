@@ -15,3 +15,4 @@ export {
   type SourceFile,
   type SourceLanguage,
 } from './scanner/index.js';
+export * from './parser/index.js';
