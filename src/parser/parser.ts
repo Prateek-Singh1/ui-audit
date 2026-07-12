@@ -145,6 +145,7 @@ const normalizeAstDocument = (
     path: file.path,
     relativePath: file.relativePath,
     language,
+    contents: file.contents,
     root: normalizeNode(sourceFile, sourceFile),
   };
 };

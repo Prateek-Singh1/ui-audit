@@ -39,6 +39,8 @@ export interface NormalizedAstDocument {
   readonly relativePath: string;
   /** Language used for parsing. */
   readonly language: Language;
+  /** Original source contents used to produce this AST. */
+  readonly contents?: string;
   /** Root AST node. */
   readonly root: NormalizedAstNode;
 }

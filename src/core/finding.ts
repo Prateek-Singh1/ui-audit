@@ -25,6 +25,8 @@ export interface SourceLocation {
 export interface Finding {
   /** The identifier of the rule that produced the finding. */
   readonly ruleId: string;
+  /** Human-readable name of the rule that produced the finding. */
+  readonly ruleName?: string;
   /** A concise explanation of the issue. */
   readonly message: string;
   /** The severity associated with the finding. */
