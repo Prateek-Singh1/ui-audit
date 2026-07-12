@@ -16,3 +16,18 @@ export {
   type SourceLanguage,
 } from './scanner/index.js';
 export * from './parser/index.js';
+export {
+  RuleEngine,
+  SequentialRuleExecutor,
+  RuleRunner,
+  execute,
+  type ExecutionError,
+  type ExecutionResult,
+  type RuleContext as RuleEngineRuleContext,
+  type RuleContextHelpers,
+  type RuleEngineExecuteInput,
+  type RuleExecutor,
+  type RuleExecutorInput,
+  type RuleInvocationResult,
+  type RuleSourceFile,
+} from './rule-engine/index.js';
