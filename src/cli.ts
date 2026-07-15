@@ -2,17 +2,41 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { version } from './index.js';
+import { AuditCommandError, REPORTER_NAMES, runAuditCommand } from './cli/index.js';
 
 const program = new Command();
 
-program.name('ui-audit').description('Audit UI, accessibility, and performance issues').version(version);
+program
+  .name('ui-audit')
+  .description('Audit UI, accessibility, and performance issues')
+  .version(version);
 
 program
   .command('audit')
   .description('Run the UI audit workflow')
-  .action(() => {
-    console.log(chalk.green('✔ UI Audit CLI'));
-    console.log('Project scanning will be implemented soon.');
+  .argument('[path]', 'project path to audit', '.')
+  .option('--config <path>', 'path to a ui-audit config file')
+  .option(`--reporter <${REPORTER_NAMES.join('|')}>`, 'reporter used to render results', 'terminal')
+  .option('--output <file>', 'write the rendered report to a file instead of stdout')
+  .option('--strict', 'fail if any finding is produced')
+  .option('--fail-on-severity <severity>', 'fail if a finding at or above this severity is produced')
+  .action(async (pathArg: string, options: Record<string, unknown>) => {
+    try {
+      const outcome = await runAuditCommand({
+        path: pathArg,
+        config: options.config as string | undefined,
+        reporter: options.reporter as string | undefined,
+        output: options.output as string | undefined,
+        strict: options.strict as boolean | undefined,
+        failOnSeverity: options.failOnSeverity as string | undefined,
+      });
+
+      console.log(outcome.stdout);
+      process.exitCode = outcome.exitCode;
+    } catch (error) {
+      process.exitCode = error instanceof AuditCommandError ? error.exitCode : 1;
+      console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+    }
   });
 
 program.parseAsync(process.argv);

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node dist/cli.js --help)",
+      "Bash(echo \"EXIT: $?\")"
+    ]
+  }
+}

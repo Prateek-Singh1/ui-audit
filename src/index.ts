@@ -2,6 +2,8 @@ export const version = '0.1.0';
 
 export * from './core/index.js';
 export * from './config/index.js';
+export * from './pipeline/index.js';
+export * from './reporters/index.js';
 export * from './discovery/index.js';
 export {
   detectSourceLanguage,
@@ -19,9 +21,11 @@ export * from './parser/index.js';
 export {
   RuleEngine,
   SequentialRuleExecutor,
+  ConfigAwareRuleExecutor,
   RuleRunner,
   execute,
   type ExecutionError,
+  type LanguageAwareRule,
   type ExecutionResult,
   type RuleContext as RuleEngineRuleContext,
   type RuleContextHelpers,
