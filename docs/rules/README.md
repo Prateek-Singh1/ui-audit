@@ -7,7 +7,7 @@ configured (including disabled) per rule in `ui-audit.config.ts`.
 | Category | Rules | Reference |
 |---|---|---|
 | React | 25 | [react.md](./react.md) |
-| Accessibility (`a11y`) | 10 | [accessibility.md](./accessibility.md) |
+| Accessibility (`a11y`) | 20 | [accessibility.md](./accessibility.md) |
 
 ## Severities
 

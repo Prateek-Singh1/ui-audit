@@ -36,6 +36,16 @@ import {
   NoPositiveTabindexRule,
   SvgTitleRule,
   VideoCaptionRule,
+  AriaRoleValidRule,
+  AriaRequiredAttributesRule,
+  NoRedundantRoleRule,
+  NoDuplicateIdRule,
+  HeadingOrderRule,
+  TableHeaderRule,
+  ListStructureRule,
+  IframeTitleRule,
+  NoMarqueeRule,
+  AudioCaptionRule,
 } from '../rules/index.js';
 
 /**
@@ -86,6 +96,16 @@ export const createBuiltInRules = (): Rule[] => {
     new VideoCaptionRule(),
     new SvgTitleRule(),
     new FormFieldNameRule(),
+    new AriaRoleValidRule(),
+    new AriaRequiredAttributesRule(),
+    new NoRedundantRoleRule(),
+    new NoDuplicateIdRule(),
+    new HeadingOrderRule(),
+    new TableHeaderRule(),
+    new ListStructureRule(),
+    new IframeTitleRule(),
+    new NoMarqueeRule(),
+    new AudioCaptionRule(),
   ];
 };
 
