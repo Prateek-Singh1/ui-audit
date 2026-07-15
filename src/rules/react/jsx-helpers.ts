@@ -106,6 +106,49 @@ export const getJsxChildren = (element: NormalizedAstNode): readonly NormalizedA
   return flattenListChildren(element).filter((child) => JSX_CHILD_KINDS.has(child.kind));
 };
 
+/** Node kinds that represent a JSX element or fragment. */
+export const JSX_ELEMENT_KINDS = ['JsxElement', 'JsxSelfClosingElement', 'JsxFragment'] as const;
+
+/** Node kinds that represent a function that may be a component. */
+export const FUNCTION_KINDS = ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunction'] as const;
+
+/** Returns the source text of a call expression's callee (the invoked target). */
+export const getCallCalleeText = (
+  ast: NormalizedAstDocument,
+  call: NormalizedAstNode,
+): string => {
+  const callee = firstExpressionChild(call);
+  return callee ? getAstNodeText(ast, callee) : '';
+};
+
+/** Returns the argument nodes of a call expression. */
+export const getCallArguments = (call: NormalizedAstNode): readonly NormalizedAstNode[] => {
+  const list = call.children.find((child) => child.kind === 'SyntaxList');
+  return list ? list.children.filter((child) => !isTokenLike(child.kind)) : [];
+};
+
+/** Whether a node contains at least one JSX element or fragment. */
+export const containsJsx = (node: NormalizedAstNode): boolean => {
+  return findNodesByKinds(node, JSX_ELEMENT_KINDS).length > 0;
+};
+
+/**
+ * Returns the outermost JSX nodes in a tree (those not contained within another
+ * JSX node), so callers can reason about complete JSX trees exactly once.
+ */
+export const findJsxRoots = (root: NormalizedAstNode): readonly NormalizedAstNode[] => {
+  const all = findNodesByKinds(root, JSX_ELEMENT_KINDS);
+  return all.filter(
+    (node) =>
+      !all.some(
+        (other) =>
+          other !== node &&
+          other.start.offset <= node.start.offset &&
+          other.end.offset >= node.end.offset,
+      ),
+  );
+};
+
 /** Builds a source location for a finding from a node's start position. */
 export const nodeLocation = (relativePath: string, node: NormalizedAstNode): SourceLocation => {
   return {
