@@ -149,6 +149,92 @@ export const findJsxRoots = (root: NormalizedAstNode): readonly NormalizedAstNod
   );
 };
 
+/**
+ * A JSX element paired with the pieces callers commonly need: its tag, the
+ * header node that carries attributes (opening or self-closing), and the
+ * container node used for descendants and location reporting.
+ */
+export interface JsxElementInfo {
+  readonly tag: string;
+  readonly header: NormalizedAstNode;
+  readonly container: NormalizedAstNode;
+  readonly selfClosing: boolean;
+}
+
+/** Collects every JSX element (opening and self-closing) under a node. */
+export const collectJsxElements = (
+  ast: NormalizedAstDocument,
+  root: NormalizedAstNode,
+): readonly JsxElementInfo[] => {
+  const elements: JsxElementInfo[] = [];
+
+  for (const node of findNodesByKinds(root, ['JsxSelfClosingElement'])) {
+    elements.push({ tag: getJsxTagName(ast, node), header: node, container: node, selfClosing: true });
+  }
+
+  for (const node of findNodesByKinds(root, ['JsxElement'])) {
+    const opening = firstChildOfKind(node, 'JsxOpeningElement');
+
+    if (opening) {
+      elements.push({ tag: getJsxTagName(ast, opening), header: opening, container: node, selfClosing: false });
+    }
+  }
+
+  return elements;
+};
+
+/** Returns the named attribute node on an element header, if present. */
+export const getAttribute = (
+  ast: NormalizedAstDocument,
+  header: NormalizedAstNode,
+  name: string,
+): NormalizedAstNode | undefined => {
+  return getJsxAttributes(header).find((attribute) => getJsxAttributeName(ast, attribute) === name);
+};
+
+/** Whether an element header declares the named attribute. */
+export const hasAttribute = (
+  ast: NormalizedAstDocument,
+  header: NormalizedAstNode,
+  name: string,
+): boolean => {
+  return getAttribute(ast, header, name) !== undefined;
+};
+
+/**
+ * Returns an attribute's value as a string: the unquoted literal, the raw
+ * expression text, `''` for a valueless boolean attribute, or `undefined` when
+ * the attribute is absent.
+ */
+export const getAttributeStringValue = (
+  ast: NormalizedAstDocument,
+  header: NormalizedAstNode,
+  name: string,
+): string | undefined => {
+  const attribute = getAttribute(ast, header, name);
+
+  if (!attribute) {
+    return undefined;
+  }
+
+  const value = getJsxAttributeValue(attribute);
+
+  if (!value) {
+    return '';
+  }
+
+  const text = getAstNodeText(ast, value);
+  return value.kind === 'StringLiteral' ? text.replace(/^['"]|['"]$/g, '') : text;
+};
+
+/** Whether an element header uses a spread attribute (`{...props}`). */
+export const hasSpreadAttribute = (header: NormalizedAstNode): boolean => {
+  const attributes = header.children.find((child) => child.kind === 'JsxAttributes');
+  return attributes
+    ? flattenListChildren(attributes).some((child) => child.kind === 'JsxSpreadAttribute')
+    : false;
+};
+
 /** Builds a source location for a finding from a node's start position. */
 export const nodeLocation = (relativePath: string, node: NormalizedAstNode): SourceLocation => {
   return {

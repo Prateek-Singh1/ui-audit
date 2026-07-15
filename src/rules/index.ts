@@ -11,3 +11,4 @@ export * from './sample/always-fail.rule.js';
 export * from './sample/always-pass.rule.js';
 export * from './sample/no-op.rule.js';
 export * from './react/index.js';
+export * from './accessibility/index.js';

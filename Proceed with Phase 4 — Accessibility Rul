@@ -1,0 +1,239 @@
+Proceed with Phase 4 — Accessibility Rules Pack 1.
+
+Objective
+
+Implement the first production-ready Accessibility rule pack for ui-audit.
+
+The CLI, pipeline, parser, reporters and Rule SDK are complete.
+
+Do NOT modify infrastructure.
+
+Only implement new accessibility rules using the existing Rule SDK.
+
+====================================================
+
+Create
+
+src/rules/accessibility/
+
+====================================================
+
+Implement the following rules
+
+1.
+
+a11y/img-alt
+
+Detect images missing an alt attribute.
+
+Severity:
+Error
+
+Suggestion:
+Provide meaningful alt text or alt="" for decorative images.
+
+----------------------------------------------------
+
+2.
+
+a11y/button-accessible-name
+
+Detect buttons with no accessible name.
+
+Examples:
+
+<button></button>
+
+<button><span /></button>
+
+Severity:
+Error
+
+----------------------------------------------------
+
+3.
+
+a11y/input-label
+
+Detect inputs without:
+
+- label
+- aria-label
+- aria-labelledby
+
+Severity:
+Error
+
+----------------------------------------------------
+
+4.
+
+a11y/anchor-valid
+
+Detect:
+
+<a>
+
+<a href="#">
+
+<a href="javascript:void(0)">
+
+Severity:
+Warning
+
+----------------------------------------------------
+
+5.
+
+a11y/no-autofocus
+
+Detect:
+
+autoFocus
+
+Severity:
+Info
+
+----------------------------------------------------
+
+6.
+
+a11y/no-positive-tabindex
+
+Detect:
+
+tabIndex={1}
+
+tabIndex={5}
+
+Severity:
+Warning
+
+----------------------------------------------------
+
+7.
+
+a11y/html-lang
+
+Detect:
+
+<html>
+
+without a lang attribute.
+
+Severity:
+Warning
+
+----------------------------------------------------
+
+8.
+
+a11y/video-caption
+
+Detect:
+
+<video>
+
+without
+
+<track kind="captions">
+
+Severity:
+Warning
+
+----------------------------------------------------
+
+9.
+
+a11y/svg-title
+
+Detect SVG elements without a title.
+
+Severity:
+Info
+
+----------------------------------------------------
+
+10.
+
+a11y/form-field-name
+
+Detect:
+
+input
+
+textarea
+
+select
+
+without an accessible name.
+
+Severity:
+Error
+
+====================================================
+
+Requirements
+
+- Use AST traversal.
+- Reuse shared JSX helpers.
+- No duplicated traversal logic.
+- No regex-only implementations.
+- Every rule must expose:
+  - metadata
+  - category
+  - severity
+  - suggestion
+  - documentation URL
+  - precise source location
+
+====================================================
+
+Tests
+
+Create comprehensive Vitest tests.
+
+Include:
+
+- positive cases
+- negative cases
+- edge cases
+- nested JSX
+- fragments
+- TSX support
+
+====================================================
+
+Documentation
+
+Create:
+
+docs/rules/accessibility.md
+
+Update the rule catalog.
+
+====================================================
+
+Validation
+
+Run:
+
+npm test
+
+npm run build
+
+npm run lint
+
+====================================================
+
+Before finishing provide:
+
+- Rules implemented
+- Files created
+- Files modified
+- Sample findings
+- Test results
+- Build results
+- Lint results
+
+Wait for my approval before implementing Accessibility Rules Pack 2.

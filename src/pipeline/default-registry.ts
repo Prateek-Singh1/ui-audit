@@ -26,6 +26,16 @@ import {
   PreferUseMemoRule,
   ReactKeyRule,
   UseEffectCleanupRule,
+  AnchorValidRule,
+  ButtonAccessibleNameRule,
+  FormFieldNameRule,
+  HtmlLangRule,
+  ImgAltRule,
+  InputLabelRule,
+  NoAutofocusRule,
+  NoPositiveTabindexRule,
+  SvgTitleRule,
+  VideoCaptionRule,
 } from '../rules/index.js';
 
 /**
@@ -66,6 +76,16 @@ export const createBuiltInRules = (): Rule[] => {
     new PreferUseMemoRule(),
     new NoDuplicatePropsRule(),
     new NoUselessFragmentRule(),
+    new ImgAltRule(),
+    new ButtonAccessibleNameRule(),
+    new InputLabelRule(),
+    new AnchorValidRule(),
+    new NoAutofocusRule(),
+    new NoPositiveTabindexRule(),
+    new HtmlLangRule(),
+    new VideoCaptionRule(),
+    new SvgTitleRule(),
+    new FormFieldNameRule(),
   ];
 };
 
