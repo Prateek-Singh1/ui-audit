@@ -1,5 +1,5 @@
 {
-  "name": "ui-audit",
+  "name": "ui-audit-cli",
   "version": "0.1.0",
   "description": "A production-quality CLI for auditing UI, accessibility, and performance issues in frontend projects.",
   "type": "module",
