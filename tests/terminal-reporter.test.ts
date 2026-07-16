@@ -85,18 +85,27 @@ describe('TerminalReporter', () => {
     expect(output).toContain('✔ No issues found.');
   });
 
-  it('groups findings by severity in a deterministic order', () => {
+  it('groups findings by category, then by severity, in a deterministic order', () => {
     const output = new TerminalReporter({ color: false }).renderResult(multiSeverityResult);
 
-    const criticalAt = output.indexOf('CRITICAL (1)');
+    // Categories render in the fixed order React → Accessibility → Performance.
+    const reactAt = output.indexOf('React (4)');
+    const accessibilityAt = output.indexOf('Accessibility (1)');
+
+    expect(reactAt).toBeGreaterThan(-1);
+    expect(accessibilityAt).toBeGreaterThan(reactAt);
+
+    // Within the React category, severities render most-severe first.
     const errorAt = output.indexOf('ERROR (1)');
     const warningAt = output.indexOf('WARNING (2)');
     const infoAt = output.indexOf('INFO (1)');
 
-    expect(criticalAt).toBeGreaterThan(-1);
-    expect(errorAt).toBeGreaterThan(criticalAt);
+    expect(errorAt).toBeGreaterThan(reactAt);
     expect(warningAt).toBeGreaterThan(errorAt);
     expect(infoAt).toBeGreaterThan(warningAt);
+
+    // The lone critical finding sits under Accessibility, after all React output.
+    expect(output.indexOf('CRITICAL (1)')).toBeGreaterThan(accessibilityAt);
   });
 
   it('renders each finding with rule id, location, message, and suggestion', () => {
@@ -144,36 +153,39 @@ describe('TerminalReporter', () => {
 
       Summary
         Files discovered: 4
+        Files scanned:    4
         Files parsed:     3
         Rules executed:   20
         Findings:         5
         Errors:           0
         Duration:         12ms
+        Category totals:  React 4, Accessibility 1
+        Severity totals:  critical 1, error 1, warning 2, info 1
 
       Findings
 
-      CRITICAL (1)
-        [critical] a11y/no-autofocus  src/Modal.tsx:4:8
-            a11y/no-autofocus message
-            ↳ a11y/no-autofocus suggestion
+      React (4)
+        ERROR (1)
+          [error] react/no-danger  src/Raw.tsx:4:8
+              react/no-danger message
+              ↳ react/no-danger suggestion
+        WARNING (2)
+          [warning] react/missing-key  src/List.tsx:4:8
+              react/missing-key message
+              ↳ react/missing-key suggestion
+          [warning] react/nested-ternary  src/Cond.tsx:4:8
+              react/nested-ternary message
+              ↳ react/nested-ternary suggestion
+        INFO (1)
+          [info] react/inline-style  src/Button.tsx:4:8
+              react/inline-style message
+              ↳ react/inline-style suggestion
 
-      ERROR (1)
-        [error] react/no-danger  src/Raw.tsx:4:8
-            react/no-danger message
-            ↳ react/no-danger suggestion
-
-      WARNING (2)
-        [warning] react/missing-key  src/List.tsx:4:8
-            react/missing-key message
-            ↳ react/missing-key suggestion
-        [warning] react/nested-ternary  src/Cond.tsx:4:8
-            react/nested-ternary message
-            ↳ react/nested-ternary suggestion
-
-      INFO (1)
-        [info] react/inline-style  src/Button.tsx:4:8
-            react/inline-style message
-            ↳ react/inline-style suggestion
+      Accessibility (1)
+        CRITICAL (1)
+          [critical] a11y/no-autofocus  src/Modal.tsx:4:8
+              a11y/no-autofocus message
+              ↳ a11y/no-autofocus suggestion
 
       ✖ 5 findings in 3 files (12ms)"
     `);

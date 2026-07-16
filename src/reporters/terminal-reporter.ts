@@ -11,6 +11,7 @@ import type { ExecutionError } from '../rule-engine/index.js';
 import type { ParserError } from '../parser/index.js';
 import type { AuditDiagnostics, AuditResult } from '../pipeline/index.js';
 import type { AuditRunMetadata } from './json-reporter.js';
+import { categoryTotals, groupFindingsByCategory, severityTotals } from './finding-categories.js';
 
 /** Display order for severity groups, most severe first. Deterministic. */
 const SEVERITY_ORDER: readonly Severity[] = ['critical', 'error', 'warning', 'info'];
@@ -80,13 +81,19 @@ export class TerminalReporter implements Reporter {
     lines.push(`${chalk.bold('ui-audit')} report`);
     lines.push(`Project: ${result.projectRoot}`);
     lines.push('');
+    const categories = categoryTotals(result.findings);
+    const severities = severityTotals(result.findings);
+
     lines.push(chalk.bold('Summary'));
     lines.push(`  Files discovered: ${result.filesDiscovered}`);
+    lines.push(`  Files scanned:    ${result.filesScanned}`);
     lines.push(`  Files parsed:     ${result.filesParsed}`);
     lines.push(`  Rules executed:   ${result.rulesExecuted}`);
     lines.push(`  Findings:         ${result.findings.length}`);
     lines.push(`  Errors:           ${result.executionErrors.length}`);
     lines.push(`  Duration:         ${formatDuration(result.duration)}`);
+    lines.push(`  Category totals:  ${categories.length > 0 ? categories.join(', ') : 'none'}`);
+    lines.push(`  Severity totals:  ${severities.length > 0 ? severities.join(', ') : 'none'}`);
   }
 
   private appendFindings(lines: string[], findings: readonly Finding[]): void {
@@ -99,26 +106,30 @@ export class TerminalReporter implements Reporter {
 
     lines.push(this.chalk.bold('Findings'));
 
-    for (const severity of SEVERITY_ORDER) {
-      const group = findings.filter((finding) => finding.severity === severity);
-
-      if (group.length === 0) {
-        continue;
-      }
-
-      const paint = this.colorFor(severity);
+    for (const group of groupFindingsByCategory(findings)) {
       lines.push('');
-      lines.push(paint(`${severity.toUpperCase()} (${group.length})`));
+      lines.push(this.chalk.bold.underline(`${group.category} (${group.findings.length})`));
 
-      for (const finding of group) {
-        lines.push(
-          `  ${paint(`[${severity}]`)} ${this.chalk.bold(finding.ruleId)}  ` +
-            this.chalk.dim(formatLocation(finding)),
-        );
-        lines.push(`      ${finding.message}`);
+      for (const severity of SEVERITY_ORDER) {
+        const bucket = group.findings.filter((finding) => finding.severity === severity);
 
-        if (finding.suggestion) {
-          lines.push(`      ${this.chalk.dim(`↳ ${finding.suggestion}`)}`);
+        if (bucket.length === 0) {
+          continue;
+        }
+
+        const paint = this.colorFor(severity);
+        lines.push(`  ${paint(`${severity.toUpperCase()} (${bucket.length})`)}`);
+
+        for (const finding of bucket) {
+          lines.push(
+            `    ${paint(`[${severity}]`)} ${this.chalk.bold(finding.ruleId)}  ` +
+              this.chalk.dim(formatLocation(finding)),
+          );
+          lines.push(`        ${finding.message}`);
+
+          if (finding.suggestion) {
+            lines.push(`        ${this.chalk.dim(`↳ ${finding.suggestion}`)}`);
+          }
         }
       }
     }

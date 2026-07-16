@@ -46,6 +46,16 @@ import {
   IframeTitleRule,
   NoMarqueeRule,
   AudioCaptionRule,
+  NoLargeImageRule,
+  NoSyncStorageRule,
+  NoLargeObjectLiteralRule,
+  NoLargeArrayLiteralRule,
+  NoExpensiveRegexRule,
+  NoInlineLargeFunctionRule,
+  NoUnnecessaryFragmentRule,
+  PreferLazyImportRule,
+  NoDeeplyNestedJsxRule,
+  NoLargeSwitchRule,
 } from '../rules/index.js';
 
 /**
@@ -106,6 +116,16 @@ export const createBuiltInRules = (): Rule[] => {
     new IframeTitleRule(),
     new NoMarqueeRule(),
     new AudioCaptionRule(),
+    new NoLargeImageRule(),
+    new NoSyncStorageRule(),
+    new NoLargeObjectLiteralRule(),
+    new NoLargeArrayLiteralRule(),
+    new NoExpensiveRegexRule(),
+    new NoInlineLargeFunctionRule(),
+    new NoUnnecessaryFragmentRule(),
+    new PreferLazyImportRule(),
+    new NoDeeplyNestedJsxRule(),
+    new NoLargeSwitchRule(),
   ];
 };
 

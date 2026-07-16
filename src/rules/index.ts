@@ -12,3 +12,4 @@ export * from './sample/always-pass.rule.js';
 export * from './sample/no-op.rule.js';
 export * from './react/index.js';
 export * from './accessibility/index.js';
+export * from './performance/index.js';

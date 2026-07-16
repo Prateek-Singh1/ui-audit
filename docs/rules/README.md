@@ -8,6 +8,7 @@ configured (including disabled) per rule in `ui-audit.config.ts`.
 |---|---|---|
 | React | 25 | [react.md](./react.md) |
 | Accessibility (`a11y`) | 20 | [accessibility.md](./accessibility.md) |
+| Performance (`perf`) | 10 | [performance.md](./performance.md) |
 
 ## Severities
 
