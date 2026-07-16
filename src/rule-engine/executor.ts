@@ -1,13 +1,13 @@
-import type { AuditConfig } from '../core/config.js';
-import type { ProjectContext } from '../core/context.js';
-import type { Finding } from '../core/finding.js';
-import type { RuleRegistry } from '../core/registry.js';
-import type { Rule } from '../core/rule.js';
-import type { NormalizedAstDocument } from '../parser/index.js';
-import { createRuleContext } from './context.js';
-import type { ExecutionError } from './execution-error.js';
-import type { ExecutionResult } from './execution-result.js';
-import { RuleRunner } from './rule-runner.js';
+import type { AuditConfig } from "../core/config.js";
+import type { ProjectContext } from "../core/context.js";
+import type { Finding } from "../core/finding.js";
+import type { RuleRegistry } from "../core/registry.js";
+import type { Rule } from "../core/rule.js";
+import type { NormalizedAstDocument } from "../parser/index.js";
+import { createRuleContext } from "./context.js";
+import type { ExecutionError } from "./execution-error.js";
+import type { ExecutionResult } from "./execution-result.js";
+import { RuleRunner } from "./rule-runner.js";
 
 /**
  * Input accepted by rule executors.
@@ -54,7 +54,10 @@ export class SequentialRuleExecutor implements RuleExecutor {
     let failedRules = 0;
 
     for (const document of input.documents) {
+      input.signal?.throwIfAborted();
+
       for (const rule of input.registry.list()) {
+        input.signal?.throwIfAborted();
         executedRules += 1;
         const result = await this.runner.run(
           rule,

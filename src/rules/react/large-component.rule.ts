@@ -1,11 +1,16 @@
-import type { RuleResult } from '../../core/index.js';
-import type { NormalizedAstNode } from '../../parser/index.js';
-import type { RuleContext } from '../../rule-engine/index.js';
-import { BaseRule } from '../base-rule.js';
-import { RuleCategory } from '../categories.js';
-import { createFinding, createRuleResult, findAstNodes, getAstNodeText } from '../helpers.js';
-import { defineRuleMetadata } from '../metadata.js';
-import { RuleSeverity } from '../severity.js';
+import type { RuleResult } from "../../core/index.js";
+import type { NormalizedAstNode } from "../../parser/index.js";
+import type { RuleContext } from "../../rule-engine/index.js";
+import { BaseRule } from "../base-rule.js";
+import { RuleCategory } from "../categories.js";
+import {
+  createFinding,
+  createRuleResult,
+  findAstNodes,
+  getAstNodeText,
+} from "../helpers.js";
+import { defineRuleMetadata } from "../metadata.js";
+import { RuleSeverity } from "../severity.js";
 
 const MAX_COMPONENT_LINES = 300;
 
@@ -16,13 +21,17 @@ export class LargeComponentRule extends BaseRule {
   constructor() {
     super(
       defineRuleMetadata({
-        id: 'react/large-component',
-        name: 'Large React component',
-        description: 'Detects React components that exceed 300 lines.',
+        id: "react/large-component",
+        name: "Large React component",
+        description: "Detects React components that exceed 300 lines.",
         category: RuleCategory.React,
         severity: RuleSeverity.Warning,
-        recommended: true,
-        enabledByDefault: true,
+        recommended: false,
+        // Disabled by default: superseded by the AST-based, configurable
+        // `react/max-component-lines`. Kept for explicit opt-in and API stability.
+        enabledByDefault: false,
+        documentationUrl:
+          "https://github.com/Prateek-Singh1/ui-audit/blob/main/docs/rules/react.md#reactlarge-component",
       }),
     );
   }
@@ -30,11 +39,15 @@ export class LargeComponentRule extends BaseRule {
   protected run(context: RuleContext): RuleResult {
     const candidates = findAstNodes(
       context.ast.root,
-      (node) => node.kind === 'FunctionDeclaration' || node.kind === 'VariableStatement',
+      (node) =>
+        node.kind === "FunctionDeclaration" ||
+        node.kind === "VariableStatement",
     );
     const findings = candidates
       .map((node) => this.toComponentCandidate(context, node))
-      .filter((candidate): candidate is ComponentCandidate => candidate !== undefined)
+      .filter(
+        (candidate): candidate is ComponentCandidate => candidate !== undefined,
+      )
       .filter((candidate) => candidate.lineCount > MAX_COMPONENT_LINES)
       .map((candidate) =>
         createFinding({
@@ -46,11 +59,16 @@ export class LargeComponentRule extends BaseRule {
             line: candidate.node.start.line,
             column: candidate.node.start.column,
           },
-          suggestion: 'Split large components into smaller components or extract complex logic.',
+          suggestion:
+            "Split large components into smaller components or extract complex logic.",
         }),
       );
 
-    return createRuleResult(this.metadata, findings.length > 0 ? 'failed' : 'passed', findings);
+    return createRuleResult(
+      this.metadata,
+      findings.length > 0 ? "failed" : "passed",
+      findings,
+    );
   }
 
   private toComponentCandidate(

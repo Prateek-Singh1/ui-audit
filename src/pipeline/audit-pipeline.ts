@@ -1,26 +1,33 @@
-import path from 'node:path';
-import type { Finding, ProjectContext, RuleRegistry } from '../core/index.js';
-import { loadConfig, type ResolvedUiAuditConfig } from '../config/index.js';
+import path from "node:path";
+import type { Finding, ProjectContext, RuleRegistry } from "../core/index.js";
+import { loadConfig, type ResolvedUiAuditConfig } from "../config/index.js";
 import {
   discoverProjectFiles,
   type FileDiscoveryOptions,
   type ProjectFile,
-} from '../discovery/index.js';
-import { scanFiles, type ScannerError, type ScannerOptions } from '../scanner/index.js';
+} from "../discovery/index.js";
+import {
+  scanFiles,
+  type ScannerError,
+  type ScannerOptions,
+} from "../scanner/index.js";
 import {
   parseFiles,
   type NormalizedAstDocument,
   type ParseOptions,
   type ParserError,
   type ParserResult,
-} from '../parser/index.js';
+} from "../parser/index.js";
 import {
   ConfigAwareRuleExecutor,
   type ExecutionError,
   type RuleExecutor,
-} from '../rule-engine/index.js';
-import { createDefaultRegistry } from './default-registry.js';
-import { resolveAuditConfig, type AuditConfigOverrides } from './resolve-config.js';
+} from "../rule-engine/index.js";
+import { createDefaultRegistry } from "./default-registry.js";
+import {
+  resolveAuditConfig,
+  type AuditConfigOverrides,
+} from "./resolve-config.js";
 
 /**
  * Non-fatal diagnostics collected while preparing files for evaluation.
@@ -156,14 +163,20 @@ export class AuditPipeline {
 
     // 2 & 3. Registry and executor are prepared as construction-time dependencies.
 
+    options.signal?.throwIfAborted();
+
     // 4. Discover candidate files (deterministically ordered by the engine).
     const projectFiles = await discoverProjectFiles(
       projectRoot,
-      this.resolveDiscoveryOptions(resolved),
+      this.resolveDiscoveryOptions(resolved, auditConfig.exclude),
     );
+
+    options.signal?.throwIfAborted();
 
     // 5. Read discovered files into source files, preserving order.
     const scanResult = await scanFiles(projectFiles, this.scannerOptions);
+
+    options.signal?.throwIfAborted();
 
     // 6. Parse source files into normalized AST documents, preserving order.
     const parseResults = await parseFiles(scanResult.files, this.parseOptions);
@@ -199,15 +212,21 @@ export class AuditPipeline {
    * Uses caller-supplied discovery options when present; otherwise derives a
    * filter from the resolved configuration's extensions and ignore list.
    */
-  private resolveDiscoveryOptions(resolved: ResolvedUiAuditConfig): FileDiscoveryOptions {
+  private resolveDiscoveryOptions(
+    resolved: ResolvedUiAuditConfig,
+    excludes?: readonly string[],
+  ): FileDiscoveryOptions {
     if (this.discoveryOptions) {
       return this.discoveryOptions;
     }
 
+    // `excludes` merges the config `ignore` list with any CLI `--exclude`
+    // overrides. Discovery matches these against directory names (the filter
+    // does not yet support glob patterns).
     return {
       filterOptions: {
         includeExtensions: resolved.parserOptions.extensions,
-        ignoredDirectoryNames: resolved.ignore,
+        ignoredDirectoryNames: excludes ?? resolved.ignore,
       },
     };
   }
@@ -216,7 +235,9 @@ export class AuditPipeline {
 /**
  * Convenience helper that runs a single audit with default dependencies.
  */
-export const runAudit = async (options: AuditRunOptions): Promise<AuditResult> => {
+export const runAudit = async (
+  options: AuditRunOptions,
+): Promise<AuditResult> => {
   return new AuditPipeline().run(options);
 };
 
@@ -251,7 +272,9 @@ const collectAnalyzableDocuments = (
   return documents;
 };
 
-const collectParseErrors = (results: readonly ParserResult[]): readonly ParserError[] => {
+const collectParseErrors = (
+  results: readonly ParserResult[],
+): readonly ParserError[] => {
   const errors: ParserError[] = [];
 
   for (const result of results) {

@@ -23,7 +23,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "audit:deps": "npm audit --omit=dev",
-    "prepare": "husky install"
+    "prepare": "husky || true"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,md}": [

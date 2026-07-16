@@ -1,13 +1,13 @@
-import type { AuditConfig } from '../core/config.js';
-import type { Finding, Severity } from '../core/finding.js';
-import type { Rule } from '../core/rule.js';
-import type { Language } from '../parser/language.js';
-import type { NormalizedAstDocument } from '../parser/index.js';
-import { createRuleContext } from './context.js';
-import type { ExecutionError } from './execution-error.js';
-import type { ExecutionResult } from './execution-result.js';
-import type { RuleExecutor, RuleExecutorInput } from './executor.js';
-import { RuleRunner } from './rule-runner.js';
+import type { AuditConfig } from "../core/config.js";
+import type { Finding, Severity } from "../core/finding.js";
+import type { Rule } from "../core/rule.js";
+import type { Language } from "../parser/language.js";
+import type { NormalizedAstDocument } from "../parser/index.js";
+import { createRuleContext } from "./context.js";
+import type { ExecutionError } from "./execution-error.js";
+import type { ExecutionResult } from "./execution-result.js";
+import type { RuleExecutor, RuleExecutorInput } from "./executor.js";
+import { RuleRunner } from "./rule-runner.js";
 
 /**
  * Optional applicability metadata a rule instance may expose.
@@ -51,7 +51,11 @@ export class ConfigAwareRuleExecutor implements RuleExecutor {
     let failedRules = 0;
 
     for (const document of input.documents) {
+      input.signal?.throwIfAborted();
+
       for (const rule of input.registry.list()) {
+        input.signal?.throwIfAborted();
+
         if (!isRuleEnabled(input.config, rule)) {
           continue;
         }
@@ -117,7 +121,10 @@ const isRuleEnabled = (config: AuditConfig, rule: Rule): boolean => {
 /**
  * Determines whether a rule applies to the language of the given document.
  */
-const isRuleApplicable = (rule: Rule, document: NormalizedAstDocument): boolean => {
+const isRuleApplicable = (
+  rule: Rule,
+  document: NormalizedAstDocument,
+): boolean => {
   const languages = getRuleLanguages(rule);
 
   if (!languages) {
@@ -134,7 +141,9 @@ const isRuleApplicable = (rule: Rule, document: NormalizedAstDocument): boolean 
 const getRuleLanguages = (rule: Rule): readonly Language[] | undefined => {
   const languages = (rule as Partial<LanguageAwareRule>).languages;
 
-  return Array.isArray(languages) && languages.length > 0 ? languages : undefined;
+  return Array.isArray(languages) && languages.length > 0
+    ? languages
+    : undefined;
 };
 
 /**

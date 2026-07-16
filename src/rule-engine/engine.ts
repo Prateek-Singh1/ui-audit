@@ -1,9 +1,10 @@
-import type { AuditConfig } from '../core/config.js';
-import type { ProjectContext } from '../core/context.js';
-import type { RuleRegistry } from '../core/registry.js';
-import type { NormalizedAstDocument } from '../parser/index.js';
-import type { ExecutionResult } from './execution-result.js';
-import { SequentialRuleExecutor, type RuleExecutor } from './executor.js';
+import type { AuditConfig } from "../core/config.js";
+import type { ProjectContext } from "../core/context.js";
+import type { RuleRegistry } from "../core/registry.js";
+import type { NormalizedAstDocument } from "../parser/index.js";
+import type { ExecutionResult } from "./execution-result.js";
+import type { RuleExecutor } from "./executor.js";
+import { ConfigAwareRuleExecutor } from "./config-aware-executor.js";
 
 /**
  * Input accepted by the RuleEngine.
@@ -29,7 +30,7 @@ export interface RuleEngineExecuteInput {
 export class RuleEngine {
   private readonly executor: RuleExecutor;
 
-  constructor(executor: RuleExecutor = new SequentialRuleExecutor()) {
+  constructor(executor: RuleExecutor = new ConfigAwareRuleExecutor()) {
     this.executor = executor;
   }
 
@@ -44,6 +45,8 @@ export class RuleEngine {
 /**
  * Convenience helper for executing rules with the default rule engine.
  */
-export const execute = async (input: RuleEngineExecuteInput): Promise<ExecutionResult> => {
+export const execute = async (
+  input: RuleEngineExecuteInput,
+): Promise<ExecutionResult> => {
   return new RuleEngine().execute(input);
 };

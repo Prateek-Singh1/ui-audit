@@ -19,6 +19,12 @@ npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 
+# Generated audit reports
+report.json
+report.html
+*.report.json
+*.report.html
+
 # Editor
 .vscode/
 

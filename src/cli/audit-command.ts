@@ -1,18 +1,38 @@
-import { writeFile } from 'node:fs/promises';
-import path from 'node:path';
-import type { Finding, Severity } from '../core/index.js';
-import { loadConfig, type ResolvedUiAuditConfig } from '../config/index.js';
-import { AuditPipeline, type AuditResult } from '../pipeline/index.js';
-import { JsonReporter, TerminalReporter } from '../reporters/index.js';
-import { createCategoryFilteredRegistry, parseCategorySelection } from './category-filter.js';
-import { filterFindingsBySeverity, parseSeveritySelection } from './severity-filter.js';
+import { writeFile } from "node:fs/promises";
+import path from "node:path";
+import type { Finding, Severity } from "../core/index.js";
+import { access } from "node:fs/promises";
+import { loadConfig, type ResolvedUiAuditConfig } from "../config/index.js";
+import {
+  AuditPipeline,
+  createBuiltInRules,
+  type AuditResult,
+} from "../pipeline/index.js";
+import {
+  HtmlReporter,
+  JsonReporter,
+  TerminalReporter,
+} from "../reporters/index.js";
+import {
+  createCategoryFilteredRegistry,
+  parseCategorySelection,
+} from "./category-filter.js";
+import {
+  filterFindingsBySeverity,
+  parseSeveritySelection,
+} from "./severity-filter.js";
 
 /** Reporter names supported by the CLI. */
-export const REPORTER_NAMES = ['terminal', 'json'] as const;
+export const REPORTER_NAMES = ["terminal", "json", "html"] as const;
 export type ReporterName = (typeof REPORTER_NAMES)[number];
 
 /** Severity levels accepted by the `--fail-on-severity` and `--severity` options. */
-export const SEVERITY_LEVELS: readonly Severity[] = ['info', 'warning', 'error', 'critical'];
+export const SEVERITY_LEVELS: readonly Severity[] = [
+  "info",
+  "warning",
+  "error",
+  "critical",
+];
 
 const SEVERITY_RANK: Readonly<Record<Severity, number>> = {
   info: 0,
@@ -30,7 +50,7 @@ export class AuditCommandError extends Error {
 
   constructor(message: string, exitCode = 2) {
     super(message);
-    this.name = 'AuditCommandError';
+    this.name = "AuditCommandError";
     this.exitCode = exitCode;
   }
 }
@@ -75,6 +95,8 @@ export interface AuditCommandResult {
   readonly exitCode: number;
   readonly stdout: string;
   readonly result: AuditResult;
+  /** Non-fatal advisories (e.g. unknown rule IDs in config) for the CLI to surface. */
+  readonly warnings?: readonly string[];
 }
 
 interface AuditResultRenderer {
@@ -93,13 +115,16 @@ export const runAuditCommand = async (
   const cwd = options.cwd ?? process.cwd();
   const reporterName = resolveReporterName(options.reporter);
   const failOnSeverity = resolveFailOnSeverity(options.failOnSeverity);
-  const projectRoot = path.resolve(cwd, options.path ?? '.');
+  const projectRoot = path.resolve(cwd, options.path ?? ".");
 
   const selection = parseCategorySelection(options.category);
-  const { registry, rulesSkipped } = createCategoryFilteredRegistry(selection.categories);
+  const { registry, rulesSkipped } = createCategoryFilteredRegistry(
+    selection.categories,
+  );
   const severitySelection = parseSeveritySelection(options.severity);
 
   const config = await loadResolvedConfig(projectRoot, options.config, cwd);
+  const warnings = collectUnknownRuleWarnings(config);
 
   const pipeline = new AuditPipeline({ registry });
   const baseResult = await pipeline.run({
@@ -128,9 +153,36 @@ export const runAuditCommand = async (
     selectedCategories: selection.categories,
     rulesSkipped,
     ...(severitySelection.filtered
-      ? { selectedSeverities: severitySelection.severities, hiddenFindings: hidden }
+      ? {
+          selectedSeverities: severitySelection.severities,
+          hiddenFindings: hidden,
+        }
       : {}),
   };
+
+  // The exit code is derived from the full, unfiltered finding set and any
+  // execution errors. Display filters (`--severity`) must never weaken the
+  // pass/fail gate, and a run where rules threw is never a clean pass.
+  const exitCode =
+    baseResult.executionErrors.length > 0
+      ? 1
+      : computeExitCode(baseResult.findings, {
+          strict: options.strict ?? false,
+          failOnSeverity,
+        });
+
+  // HTML reports are large, self-contained documents intended for a file rather
+  // than a terminal. Without --output, remind the user instead of dumping HTML.
+  if (reporterName === "html" && !options.output) {
+    return {
+      exitCode,
+      stdout:
+        "HTML reports are best saved to a file. Re-run with --output to write one, " +
+        "e.g. `ui-audit audit --reporter html --output report.html`.",
+      result,
+      ...(warnings.length > 0 ? { warnings } : {}),
+    };
+  }
 
   // Disable color when writing to a file; otherwise let the reporter
   // auto-detect terminal color support.
@@ -138,22 +190,45 @@ export const runAuditCommand = async (
     color: options.output ? false : undefined,
   }).renderResult(result);
 
-  const exitCode = computeExitCode(result.findings, {
-    strict: options.strict ?? false,
-    failOnSeverity,
-  });
-
   if (options.output) {
     const outputPath = path.resolve(cwd, options.output);
-    await writeFile(outputPath, `${rendered}\n`, 'utf8');
+    await writeFile(outputPath, `${rendered}\n`, "utf8");
     return {
       exitCode,
       stdout: `Report written to ${options.output} (${result.findings.length} findings, ${result.executionErrors.length} errors)`,
       result,
+      ...(warnings.length > 0 ? { warnings } : {}),
     };
   }
 
-  return { exitCode, stdout: rendered, result };
+  return {
+    exitCode,
+    stdout: rendered,
+    result,
+    ...(warnings.length > 0 ? { warnings } : {}),
+  };
+};
+
+/**
+ * Produces advisory warnings for rule IDs configured by the user that do not
+ * match any built-in rule (usually a typo). Such overrides are silently
+ * inert otherwise.
+ */
+const collectUnknownRuleWarnings = (
+  config: ResolvedUiAuditConfig,
+): string[] => {
+  const known = new Set(createBuiltInRules().map((rule) => rule.id));
+  const unknown = Object.keys(config.rules ?? {}).filter(
+    (ruleId) => !known.has(ruleId),
+  );
+
+  if (unknown.length === 0) {
+    return [];
+  }
+
+  return [
+    `Unknown rule ${unknown.length === 1 ? "ID" : "IDs"} in configuration (ignored): ${unknown.join(", ")}.`,
+  ];
 };
 
 const loadResolvedConfig = async (
@@ -166,17 +241,37 @@ const loadResolvedConfig = async (
   }
 
   const absoluteConfig = path.resolve(cwd, configPath);
+
+  // An explicitly requested config that does not exist is a usage error, rather
+  // than silently falling back to defaults.
+  if (!(await fileExists(absoluteConfig))) {
+    throw new AuditCommandError(`Config file not found: ${configPath}`);
+  }
+
   return loadConfig(path.dirname(absoluteConfig), {
     configFileName: path.basename(absoluteConfig),
   });
+};
+
+const fileExists = async (filePath: string): Promise<boolean> => {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const createReporter = (
   reporter: ReporterName,
   options: { readonly color?: boolean },
 ): AuditResultRenderer => {
-  if (reporter === 'json') {
+  if (reporter === "json") {
     return new JsonReporter();
+  }
+
+  if (reporter === "html") {
+    return new HtmlReporter();
   }
 
   return new TerminalReporter({ color: options.color });
@@ -184,26 +279,28 @@ const createReporter = (
 
 const resolveReporterName = (reporter: string | undefined): ReporterName => {
   if (reporter === undefined) {
-    return 'terminal';
+    return "terminal";
   }
 
   if (!isReporterName(reporter)) {
     throw new AuditCommandError(
-      `Unknown reporter "${reporter}". Expected one of: ${REPORTER_NAMES.join(', ')}.`,
+      `Unknown reporter "${reporter}". Expected one of: ${REPORTER_NAMES.join(", ")}.`,
     );
   }
 
   return reporter;
 };
 
-const resolveFailOnSeverity = (value: string | undefined): Severity | undefined => {
+const resolveFailOnSeverity = (
+  value: string | undefined,
+): Severity | undefined => {
   if (value === undefined) {
     return undefined;
   }
 
   if (!isSeverity(value)) {
     throw new AuditCommandError(
-      `Invalid --fail-on-severity "${value}". Expected one of: ${SEVERITY_LEVELS.join(', ')}.`,
+      `Invalid --fail-on-severity "${value}". Expected one of: ${SEVERITY_LEVELS.join(", ")}.`,
     );
   }
 
@@ -221,10 +318,14 @@ export const computeExitCode = (
   findings: readonly Finding[],
   policy: { readonly strict: boolean; readonly failOnSeverity?: Severity },
 ): number => {
-  const threshold: Severity = policy.strict ? 'info' : policy.failOnSeverity ?? 'error';
+  const threshold: Severity = policy.strict
+    ? "info"
+    : (policy.failOnSeverity ?? "error");
   const minRank = SEVERITY_RANK[threshold];
 
-  return findings.some((finding) => SEVERITY_RANK[finding.severity] >= minRank) ? 1 : 0;
+  return findings.some((finding) => SEVERITY_RANK[finding.severity] >= minRank)
+    ? 1
+    : 0;
 };
 
 const isReporterName = (value: string): value is ReporterName => {

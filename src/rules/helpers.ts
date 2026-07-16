@@ -1,7 +1,15 @@
-import type { Finding, RuleResult, RuleStatus, SourceLocation } from '../core/index.js';
-import type { NormalizedAstDocument, NormalizedAstNode } from '../parser/index.js';
-import type { RuleContext } from '../rule-engine/index.js';
-import type { RuleMetadata } from './metadata.js';
+import type {
+  Finding,
+  RuleResult,
+  RuleStatus,
+  SourceLocation,
+} from "../core/index.js";
+import type {
+  NormalizedAstDocument,
+  NormalizedAstNode,
+} from "../parser/index.js";
+import type { RuleContext } from "../rule-engine/index.js";
+import type { RuleMetadata } from "./metadata.js";
 
 /**
  * Input for creating a normalized finding from a rule.
@@ -61,27 +69,54 @@ export const visitAst = (
 };
 
 /**
- * Returns all AST nodes matching a predicate.
+ * Cache of the flattened, pre-order node list for a given subtree root.
+ *
+ * Rules each query the AST many times (often the whole document, once per rule),
+ * and every query previously re-walked the tree. Caching the single pre-order
+ * walk per root collapses that into one traversal per document, shared across
+ * all rules, with identical ordering and results. Keyed weakly so entries are
+ * released with their AST.
+ */
+const nodeListCache = new WeakMap<
+  NormalizedAstNode,
+  readonly NormalizedAstNode[]
+>();
+
+/**
+ * Returns every node in a subtree in pre-order, memoized per root node.
+ */
+export const getAllAstNodes = (
+  node: NormalizedAstNode,
+): readonly NormalizedAstNode[] => {
+  const cached = nodeListCache.get(node);
+
+  if (cached) {
+    return cached;
+  }
+
+  const all: NormalizedAstNode[] = [];
+  visitAst(node, (currentNode) => all.push(currentNode));
+  nodeListCache.set(node, all);
+  return all;
+};
+
+/**
+ * Returns all AST nodes matching a predicate, in pre-order.
  */
 export const findAstNodes = (
   node: NormalizedAstNode,
   predicate: (node: NormalizedAstNode) => boolean,
 ): readonly NormalizedAstNode[] => {
-  const matches: NormalizedAstNode[] = [];
-
-  visitAst(node, (currentNode) => {
-    if (predicate(currentNode)) {
-      matches.push(currentNode);
-    }
-  });
-
-  return matches;
+  return getAllAstNodes(node).filter((currentNode) => predicate(currentNode));
 };
 
 /**
  * Returns whether an AST node contains a descendant with the supplied kind.
  */
-export const hasAstDescendantKind = (node: NormalizedAstNode, kind: string): boolean => {
+export const hasAstDescendantKind = (
+  node: NormalizedAstNode,
+  kind: string,
+): boolean => {
   return node.children.some(
     (child) => child.kind === kind || hasAstDescendantKind(child, kind),
   );
@@ -94,7 +129,7 @@ export const getAstNodeText = (
   document: NormalizedAstDocument,
   node: NormalizedAstNode,
 ): string => {
-  return document.contents?.slice(node.start.offset, node.end.offset) ?? '';
+  return document.contents?.slice(node.start.offset, node.end.offset) ?? "";
 };
 
 /**

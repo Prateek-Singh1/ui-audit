@@ -1,20 +1,24 @@
-import type { RuleResult } from '../../core/index.js';
-import type { NormalizedAstNode } from '../../parser/index.js';
-import type { RuleContext } from '../../rule-engine/index.js';
-import { BaseRule } from '../base-rule.js';
-import { RuleCategory } from '../categories.js';
-import { createFinding, createRuleResult } from '../helpers.js';
-import { defineRuleMetadata } from '../metadata.js';
-import { RuleSeverity } from '../severity.js';
+import type { RuleResult } from "../../core/index.js";
+import type { NormalizedAstNode } from "../../parser/index.js";
+import type { RuleContext } from "../../rule-engine/index.js";
+import { BaseRule } from "../base-rule.js";
+import { RuleCategory } from "../categories.js";
+import { createFinding, createRuleResult } from "../helpers.js";
+import { defineRuleMetadata } from "../metadata.js";
+import { RuleSeverity } from "../severity.js";
 import {
   firstChildOfKind,
   flattenListChildren,
   getJsxAttributes,
   getJsxTagName,
   nodeLocation,
-} from './jsx-helpers.js';
+} from "./jsx-helpers.js";
 
-const WRAPPER_ELEMENT_KINDS = new Set(['JsxElement', 'JsxSelfClosingElement', 'JsxFragment']);
+const WRAPPER_ELEMENT_KINDS = new Set([
+  "JsxElement",
+  "JsxSelfClosingElement",
+  "JsxFragment",
+]);
 
 /**
  * Flags attribute-free `<div>` wrappers that only group multiple children. Such
@@ -24,15 +28,16 @@ export class PreferFragmentRule extends BaseRule {
   constructor() {
     super(
       defineRuleMetadata({
-        id: 'react/prefer-fragment',
-        name: 'Prefer fragment',
-        description: 'Suggests a Fragment instead of an attribute-free wrapper div.',
+        id: "react/prefer-fragment",
+        name: "Prefer fragment",
+        description:
+          "Suggests a Fragment instead of an attribute-free wrapper div.",
         category: RuleCategory.React,
         severity: RuleSeverity.Info,
         recommended: false,
         enabledByDefault: true,
         documentationUrl:
-          'https://github.com/Prateek-Singh1/ui-audit/blob/main/docs/rules/react/prefer-fragment.md',
+          "https://github.com/Prateek-Singh1/ui-audit/blob/main/docs/rules/react.md#reactprefer-fragment",
       }),
     );
   }
@@ -44,19 +49,27 @@ export class PreferFragmentRule extends BaseRule {
         createFinding({
           context,
           ruleName: this.name,
-          message: 'A wrapper <div> with no props could be a Fragment.',
+          message: "A wrapper <div> with no props could be a Fragment.",
           location: nodeLocation(context.sourceFile.relativePath, element),
-          suggestion: 'Use a Fragment (<>...</>) to avoid an unnecessary DOM node.',
+          suggestion:
+            "Use a Fragment (<>...</>) to avoid an unnecessary DOM node.",
         }),
       );
 
-    return createRuleResult(this.metadata, findings.length > 0 ? 'failed' : 'passed', findings);
+    return createRuleResult(
+      this.metadata,
+      findings.length > 0 ? "failed" : "passed",
+      findings,
+    );
   }
 
-  private isRedundantDivWrapper(context: RuleContext, element: NormalizedAstNode): boolean {
-    const opening = firstChildOfKind(element, 'JsxOpeningElement');
+  private isRedundantDivWrapper(
+    context: RuleContext,
+    element: NormalizedAstNode,
+  ): boolean {
+    const opening = firstChildOfKind(element, "JsxOpeningElement");
 
-    if (!opening || getJsxTagName(context.ast, opening) !== 'div') {
+    if (!opening || getJsxTagName(context.ast, opening) !== "div") {
       return false;
     }
 
@@ -71,11 +84,13 @@ export class PreferFragmentRule extends BaseRule {
   }
 }
 
-const findJsxElements = (root: NormalizedAstNode): readonly NormalizedAstNode[] => {
+const findJsxElements = (
+  root: NormalizedAstNode,
+): readonly NormalizedAstNode[] => {
   const matches: NormalizedAstNode[] = [];
 
   const visit = (node: NormalizedAstNode): void => {
-    if (node.kind === 'JsxElement') {
+    if (node.kind === "JsxElement") {
       matches.push(node);
     }
 
