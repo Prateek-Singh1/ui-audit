@@ -92,6 +92,14 @@ export class TerminalReporter implements Reporter {
     lines.push(`  Findings:         ${result.findings.length}`);
     lines.push(`  Errors:           ${result.executionErrors.length}`);
     lines.push(`  Duration:         ${formatDuration(result.duration)}`);
+
+    if (result.selectedCategories !== undefined) {
+      const selected =
+        result.selectedCategories.length > 0 ? result.selectedCategories.join(', ') : 'none';
+      lines.push(`  Selected categories: ${selected}`);
+      lines.push(`  Rules skipped:       ${result.rulesSkipped ?? 0}`);
+    }
+
     lines.push(`  Category totals:  ${categories.length > 0 ? categories.join(', ') : 'none'}`);
     lines.push(`  Severity totals:  ${severities.length > 0 ? severities.join(', ') : 'none'}`);
   }

@@ -4,6 +4,7 @@ import type { Finding, Severity } from '../core/index.js';
 import { loadConfig, type ResolvedUiAuditConfig } from '../config/index.js';
 import { AuditPipeline, type AuditResult } from '../pipeline/index.js';
 import { JsonReporter, TerminalReporter } from '../reporters/index.js';
+import { createCategoryFilteredRegistry, parseCategorySelection } from './category-filter.js';
 
 /** Reporter names supported by the CLI. */
 export const REPORTER_NAMES = ['terminal', 'json'] as const;
@@ -49,6 +50,11 @@ export interface AuditCommandOptions {
   readonly strict?: boolean;
   /** Fail (non-zero exit) when a finding at or above this severity is produced. */
   readonly failOnSeverity?: string;
+  /**
+   * Comma-separated rule categories to execute (e.g. `react,performance`).
+   * When omitted, every category runs.
+   */
+  readonly category?: string;
   /** Working directory used to resolve relative paths. Defaults to process.cwd(). */
   readonly cwd?: string;
 }
@@ -83,10 +89,13 @@ export const runAuditCommand = async (
   const failOnSeverity = resolveFailOnSeverity(options.failOnSeverity);
   const projectRoot = path.resolve(cwd, options.path ?? '.');
 
+  const selection = parseCategorySelection(options.category);
+  const { registry, rulesSkipped } = createCategoryFilteredRegistry(selection.categories);
+
   const config = await loadResolvedConfig(projectRoot, options.config, cwd);
 
-  const pipeline = new AuditPipeline();
-  const result = await pipeline.run({
+  const pipeline = new AuditPipeline({ registry });
+  const baseResult = await pipeline.run({
     projectRoot,
     config,
     overrides: {
@@ -96,6 +105,13 @@ export const runAuditCommand = async (
       ...(failOnSeverity ? { failOnSeverity } : {}),
     },
   });
+
+  // Attach category-selection metadata so the terminal reporter can surface it.
+  const result: AuditResult = {
+    ...baseResult,
+    selectedCategories: selection.categories,
+    rulesSkipped,
+  };
 
   // Disable color when writing to a file; otherwise let the reporter
   // auto-detect terminal color support.

@@ -57,6 +57,17 @@ export interface AuditResult {
   readonly executionErrors: readonly ExecutionError[];
   /** Non-fatal scan and parse diagnostics. */
   readonly diagnostics: AuditDiagnostics;
+  /**
+   * Rule categories selected for this run, in display order. Present when a
+   * caller restricts execution to specific categories (e.g. the CLI
+   * `--category` flag); omitted when every category runs.
+   */
+  readonly selectedCategories?: readonly string[];
+  /**
+   * Number of built-in rules excluded from the run by category filtering.
+   * Present alongside {@link AuditResult.selectedCategories}.
+   */
+  readonly rulesSkipped?: number;
 }
 
 /**
