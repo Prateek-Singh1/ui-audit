@@ -68,6 +68,18 @@ export interface AuditResult {
    * Present alongside {@link AuditResult.selectedCategories}.
    */
   readonly rulesSkipped?: number;
+  /**
+   * Severities selected for reporting, in display order. Present when a caller
+   * filters findings by severity (e.g. the CLI `--severity` flag); omitted when
+   * every severity is reported. Filtering is applied after rule execution, so
+   * the execution statistics above stay accurate.
+   */
+  readonly selectedSeverities?: readonly string[];
+  /**
+   * Number of findings hidden by severity filtering. Present alongside
+   * {@link AuditResult.selectedSeverities}.
+   */
+  readonly hiddenFindings?: number;
 }
 
 /**

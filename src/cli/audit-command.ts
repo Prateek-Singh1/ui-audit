@@ -5,13 +5,14 @@ import { loadConfig, type ResolvedUiAuditConfig } from '../config/index.js';
 import { AuditPipeline, type AuditResult } from '../pipeline/index.js';
 import { JsonReporter, TerminalReporter } from '../reporters/index.js';
 import { createCategoryFilteredRegistry, parseCategorySelection } from './category-filter.js';
+import { filterFindingsBySeverity, parseSeveritySelection } from './severity-filter.js';
 
 /** Reporter names supported by the CLI. */
 export const REPORTER_NAMES = ['terminal', 'json'] as const;
 export type ReporterName = (typeof REPORTER_NAMES)[number];
 
-/** Severity levels accepted by the `--fail-on-severity` option. */
-const SEVERITY_LEVELS: readonly Severity[] = ['info', 'warning', 'error', 'critical'];
+/** Severity levels accepted by the `--fail-on-severity` and `--severity` options. */
+export const SEVERITY_LEVELS: readonly Severity[] = ['info', 'warning', 'error', 'critical'];
 
 const SEVERITY_RANK: Readonly<Record<Severity, number>> = {
   info: 0,
@@ -55,6 +56,11 @@ export interface AuditCommandOptions {
    * When omitted, every category runs.
    */
   readonly category?: string;
+  /**
+   * Comma-separated severities to report (e.g. `warning,error`). Case-insensitive.
+   * When omitted, findings of every severity are reported.
+   */
+  readonly severity?: string;
   /** Working directory used to resolve relative paths. Defaults to process.cwd(). */
   readonly cwd?: string;
 }
@@ -91,6 +97,7 @@ export const runAuditCommand = async (
 
   const selection = parseCategorySelection(options.category);
   const { registry, rulesSkipped } = createCategoryFilteredRegistry(selection.categories);
+  const severitySelection = parseSeveritySelection(options.severity);
 
   const config = await loadResolvedConfig(projectRoot, options.config, cwd);
 
@@ -106,11 +113,23 @@ export const runAuditCommand = async (
     },
   });
 
-  // Attach category-selection metadata so the terminal reporter can surface it.
+  // Severity filtering is applied to findings after execution so the run's
+  // execution statistics stay accurate; only the reported set changes.
+  const { visible, hidden } = filterFindingsBySeverity(
+    baseResult.findings,
+    severitySelection.severities,
+  );
+
+  // Attach category- and severity-selection metadata so the reporters can
+  // surface it (and so the JSON reporter emits only the visible findings).
   const result: AuditResult = {
     ...baseResult,
+    findings: visible,
     selectedCategories: selection.categories,
     rulesSkipped,
+    ...(severitySelection.filtered
+      ? { selectedSeverities: severitySelection.severities, hiddenFindings: hidden }
+      : {}),
   };
 
   // Disable color when writing to a file; otherwise let the reporter

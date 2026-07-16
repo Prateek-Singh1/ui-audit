@@ -134,8 +134,13 @@ describe('runAuditCommand --category', () => {
     const first = await runAuditCommand({ path: root, cwd: root, category: 'react,performance' });
     const second = await runAuditCommand({ path: root, cwd: root, category: 'performance,react' });
 
-    // Same selection regardless of token order, and identical rendered output.
+    // Same selection regardless of token order, and identical rendered output
+    // (ignoring the wall-clock duration line, which is not part of ordering).
     expect(first.result.selectedCategories).toEqual(second.result.selectedCategories);
-    expect(first.stdout).toBe(second.stdout);
+    expect(withoutDuration(first.stdout)).toBe(withoutDuration(second.stdout));
   });
 });
+
+/** Removes the volatile wall-clock duration so output can be compared for determinism. */
+const withoutDuration = (output: string): string =>
+  output.replace(/^\s*Duration:.*$/m, '  Duration:').replace(/\(\d+ms\)/g, '(Nms)');

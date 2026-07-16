@@ -19,6 +19,7 @@ program
   .option(`--reporter <${REPORTER_NAMES.join('|')}>`, 'reporter used to render results', 'terminal')
   .option('--output <file>', 'write the rendered report to a file instead of stdout')
   .option('--category <categories>', 'only run rules in these comma-separated categories (react, accessibility, performance)')
+  .option('--severity <severities>', 'only report findings of these comma-separated severities (info, warning, error, critical)')
   .option('--strict', 'fail if any finding is produced')
   .option('--fail-on-severity <severity>', 'fail if a finding at or above this severity is produced')
   .action(async (pathArg: string, options: Record<string, unknown>) => {
@@ -29,6 +30,7 @@ program
         reporter: options.reporter as string | undefined,
         output: options.output as string | undefined,
         category: options.category as string | undefined,
+        severity: options.severity as string | undefined,
         strict: options.strict as boolean | undefined,
         failOnSeverity: options.failOnSeverity as string | undefined,
       });

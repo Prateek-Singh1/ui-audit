@@ -100,6 +100,17 @@ export class TerminalReporter implements Reporter {
       lines.push(`  Rules skipped:       ${result.rulesSkipped ?? 0}`);
     }
 
+    if (result.selectedSeverities !== undefined) {
+      const selected =
+        result.selectedSeverities.length > 0 ? result.selectedSeverities.join(', ') : 'none';
+      lines.push(`  Selected severities: ${selected}`);
+      lines.push(`  Visible findings:    ${result.findings.length}`);
+
+      if ((result.hiddenFindings ?? 0) > 0) {
+        lines.push(`  Hidden findings:     ${result.hiddenFindings}`);
+      }
+    }
+
     lines.push(`  Category totals:  ${categories.length > 0 ? categories.join(', ') : 'none'}`);
     lines.push(`  Severity totals:  ${severities.length > 0 ? severities.join(', ') : 'none'}`);
   }

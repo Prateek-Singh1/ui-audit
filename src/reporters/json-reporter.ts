@@ -16,6 +16,12 @@ export interface JsonReportMetadata {
   readonly reporter: string;
   /** Report schema version for downstream consumers. */
   readonly schemaVersion: number;
+  /**
+   * Severities the findings were filtered to, when severity filtering was
+   * active. Omitted otherwise, preserving the existing schema for unfiltered
+   * runs.
+   */
+  readonly selectedSeverities?: readonly string[];
 }
 
 /**
@@ -74,7 +80,9 @@ const EMPTY_DIAGNOSTICS: AuditDiagnostics = { scan: [], parse: [] };
  */
 export const buildJsonReport = (result: AuditResult): JsonReport => {
   return {
-    metadata: REPORT_METADATA,
+    metadata: result.selectedSeverities
+      ? { ...REPORT_METADATA, selectedSeverities: result.selectedSeverities }
+      : REPORT_METADATA,
     projectRoot: result.projectRoot,
     duration: result.duration,
     summary: {
